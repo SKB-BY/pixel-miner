@@ -1,156 +1,279 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="format-detection" content="telephone=no">
   <title>Pixel Miner</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --primary: #ff416c;
+      --secondary: #2575fc;
+      --accent: #FFD700;
+      --dark: #0a0720;
+      --light: #ffffff;
+      --success: #2ecc71;
+      --danger: #e74c3c;
+      --building: #1abc9c;
+    }
+
     body {
-      background: linear-gradient(135deg, #0f0c29, #3a1c71);
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
-      height: 100vh;
+      background: linear-gradient(135deg, var(--dark), #1a1240);
+      color: var(--light);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding-top: 20px;
+      padding: clamp(10px, 4vh, 20px) clamp(5px, 3vw, 15px);
       overflow: hidden;
-    }
-    .container {
       text-align: center;
-      width: 95%;
-      max-width: 500px;
     }
-    h1 {
-      font-size: 1.8em;
-      margin-bottom: 15px;
-      color: #ffcc00;
-      text-shadow: 0 0 10px rgba(255,204,0,0.5);
+
+    .header {
+      margin-bottom: clamp(12px, 5vh, 20px);
     }
-    .stat {
-      background: rgba(0,0,0,0.3);
-      padding: 8px;
-      margin: 6px 0;
-      border-radius: 8px;
-      font-size: 1.2em;
+
+    .header h1 {
+      font-size: clamp(1.6rem, 6vw, 2.2rem);
+      background: linear-gradient(90deg, var(--accent), #ff7e5f);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 800;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+      margin-bottom: 8px;
     }
-    .btn {
-      padding: 12px;
-      margin: 8px 4px;
-      border: none;
-      border-radius: 10px;
-      font-size: 1em;
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: clamp(8px, 2.5vw, 12px);
+      width: 100%;
+      margin-bottom: clamp(15px, 6vh, 25px);
+    }
+
+    .stat-card {
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(4px);
+      border-radius: 14px;
+      padding: clamp(10px, 3.5vh, 14px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .stat-label {
+      font-size: clamp(0.8rem, 2.8vw, 0.95rem);
+      opacity: 0.85;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: clamp(1.2rem, 4.5vw, 1.6rem);
       font-weight: bold;
-      cursor: pointer;
-      width: 95%;
-      max-width: 280px;
-      transition: transform 0.1s;
+      color: var(--accent);
     }
-    .btn:active { transform: scale(0.97); }
+
     #mineBtn {
-      width: 130px;
-      height: 130px;
+      width: clamp(100px, 25vw, 140px);
+      height: clamp(100px, 25vw, 140px);
       border-radius: 50%;
-      background: radial-gradient(circle, #ff416c, #ff4b2b);
+      background: radial-gradient(circle, var(--primary), #ff4b2b);
       color: white;
-      font-size: 1.3em;
-      border: 3px solid #ffcc00;
-      box-shadow: 0 6px 20px rgba(255,65,108,0.6);
-      margin: 15px 0;
+      font-size: clamp(1.1rem, 4vw, 1.4rem);
+      font-weight: bold;
+      border: 3px solid var(--accent);
+      box-shadow:
+        0 6px 20px rgba(255, 65, 108, 0.6),
+        inset 0 2px 6px rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin: clamp(15px, 5vh, 25px) 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .donate-btn { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
-    .cycle-btn { background: linear-gradient(135deg, #00c9ff, #92fe9d); color: #000; }
+
+    #mineBtn:active {
+      transform: scale(0.94);
+      box-shadow: 0 3px 10px rgba(255, 65, 108, 0.5);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: clamp(8px, 2.5vw, 12px);
+      width: 100%;
+      margin-top: clamp(10px, 4vh, 20px);
+    }
+
+    .btn {
+      padding: clamp(10px, 3.2vh, 14px) clamp(12px, 4vw, 20px);
+      border: none;
+      border-radius: 12px;
+      font-size: clamp(0.9rem, 3.2vw, 1.05rem);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-width: 140px;
+      max-width: 100%;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    }
+
+    .btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
     .upgrade-btn { background: linear-gradient(135deg, #8E2DE2, #4A00E0); color: white; }
+    .cycle-btn { background: linear-gradient(135deg, #00c9ff, #92fe9d); color: #000; }
+    .donate-btn { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
     .map-btn { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
-    .build-btn { background: linear-gradient(135deg, #2ecc71, #1abc9c); color: white; }
 
     #mapView {
-      margin-top: 20px;
-      min-height: 180px;
-      background: rgba(0,0,0,0.25);
-      border-radius: 12px;
-      padding: 12px;
+      margin-top: clamp(20px, 6vh, 30px);
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(6px);
+      border-radius: 16px;
+      padding: clamp(14px, 4.5vh, 20px);
+      width: 100%;
       display: none;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    .building-label {
-      margin-top: 10px;
-      font-size: 0.95em;
-      color: #aaffaa;
-    }
-    .building {
-      width: 70px;
-      height: 140px;
-      margin: 10px auto;
-      background: #111;
+
+    .building-container {
+      margin: 15px auto;
+      width: clamp(60px, 18vw, 90px);
+      height: clamp(120px, 35vh, 180px);
+      background: #0d0a20;
+      border: 2px solid #444;
       position: relative;
-      border: 2px solid #555;
       overflow: hidden;
+      border-radius: 4px;
     }
+
     .floor {
       width: 100%;
-      height: 14px; /* 140px / 10 = 10 этажей на экране (масштабируемо) */
-      background: #27ae60;
-      border-bottom: 1px solid #1e8449;
-      animation: appear 0.3s ease;
+      height: calc(100% / 10);
+      background: linear-gradient(to right, var(--building), #16a085);
+      border-bottom: 1px solid #0d7a63;
+      animation: floorPop 0.3s ease-out;
     }
-    @keyframes appear {
-      from { opacity: 0; transform: scaleY(0); }
-      to { opacity: 1; transform: scaleY(1); }
+
+    @keyframes floorPop {
+      0% { transform: scaleY(0); opacity: 0.6; }
+      100% { transform: scaleY(1); opacity: 1; }
+    }
+
+    .pulse {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+    }
+
+    @media (max-height: 600px) {
+      body { padding-top: 5px; }
+      .actions { gap: 6px; }
+      .btn { padding: 8px 12px; font-size: 0.85rem; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="header">
     <h1>⚡ Pixel Miner</h1>
-    <div class="stat">Энергия: <b id="energy">0</b></div>
-    <div class="stat">Осколков Аскензии: <b id="shards">0</b></div>
-    <div class="stat">Циклов пройдено: <b id="cycles">0</b></div>
-    <button id="mineBtn">ТАП!</button>
-    <br>
-    <button class="btn upgrade-btn" id="upgrade">Улучшить добычу (+1) – 10 Эн.</button>
-    <button class="btn cycle-btn" id="cycle">🔄 Запустить цикл очищения</button>
-    <button class="btn donate-btn" id="donate">💎 Поддержать разработчика (TON)</button>
-    <button class="btn map-btn" id="mapBtn">🗺️ Карта строительства</button>
+  </div>
 
-    <div id="mapView">
-      <div>🏗️ Дом №<b id="buildingNum">1</b> (<b id="floorCount">0</b>/100 этажей)</div>
-      <div class="building" id="buildingVisual"></div>
-      <div>Нажатий: <b id="buildClicks">0</b> / 1000</div>
-      <button class="btn build-btn" id="buildBtn">🔨 Строить</button>
-      <div class="building-label" id="buildingStatus">Фундамент заложен...</div>
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Энергия</div>
+      <div class="stat-value" id="energy">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Осколков</div>
+      <div class="stat-value" id="shards">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Циклов</div>
+      <div class="stat-value" id="cycles">0</div>
+    </div>
+  </div>
+
+  <button id="mineBtn" class="pulse">
+    <i class="fas fa-bolt"></i>
+  </button>
+
+  <div class="actions">
+    <button class="btn upgrade-btn" id="upgrade">
+      <i class="fas fa-arrow-up"></i> Улучшить
+    </button>
+    <button class="btn cycle-btn" id="cycle">
+      <i class="fas fa-redo"></i> Цикл
+    </button>
+    <button class="btn donate-btn" id="donate">
+      <i class="fas fa-gem"></i> TON
+    </button>
+    <button class="btn map-btn" id="mapBtn">
+      <i class="fas fa-map-marked-alt"></i> Карта
+    </button>
+  </div>
+
+  <div id="mapView">
+    <div class="stat-card" style="background:rgba(0,30,30,0.4);margin-bottom:12px;">
+      🏗️ Дом №<b id="buildingNum">1</b> (<b id="floorCount">0</b>/100)
+    </div>
+    <div class="building-container" id="buildingVisual"></div>
+    <div style="margin:8px 0; font-size:0.95rem;">
+      Нажатий: <b id="buildClicks">0</b> / 1000
+    </div>
+    <button class="btn build-btn" style="background:linear-gradient(135deg, #2ecc71, #1abc9c);color:#000;" id="buildBtn">
+      <i class="fas fa-hammer"></i> Строить
+    </button>
+    <div style="margin-top:10px; font-size:0.9rem; color:#aaffaa;" id="buildingStatus">
+      Фундамент заложен...
     </div>
   </div>
 
   <script>
-    // === Telegram WebApp ===
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.expand();
       tg.ready();
     }
 
-    // === Константы ===
     const WALLET_ADDRESS = "UQA5aUC-_Z0IK4_NqFJVdBKCGUzO9DXFwHMs7gwSMWGM8CxY";
     const CLICKS_PER_FLOOR = 1000;
     const MAX_FLOORS = 100;
 
-    // === Инициализация данных ===
-    let game = JSON.parse(localStorage.getItem('pixelMiner_v4')) || {
+    let game = JSON.parse(localStorage.getItem('pixelMiner_v5')) || {
       energy: 0,
       shards: 0,
       cycles: 0,
       tapPower: 1,
-      // Стройка
       buildClicks: 0,
       floors: 0,
       buildings: 1,
       userId: tg?.initDataUnsafe?.user?.id || Math.floor(Math.random() * 1e9)
     };
 
-    // === DOM элементы ===
     const el = {
       energy: document.getElementById('energy'),
       shards: document.getElementById('shards'),
@@ -169,30 +292,24 @@
       buildingStatus: document.getElementById('buildingStatus')
     };
 
-    // === Обновление UI ===
     function render() {
-      // Основной экран
       el.energy.textContent = Math.floor(game.energy);
       el.shards.textContent = game.shards;
       el.cycles.textContent = game.cycles;
-
-      // Карта
       el.buildingNum.textContent = game.buildings;
       el.floorCount.textContent = game.floors;
       el.buildClicks.textContent = game.buildClicks;
 
-      // Визуализация здания (макс. 10 блоков на экране)
       el.buildingVisual.innerHTML = '';
-      const visibleFloors = Math.min(game.floors, 10);
-      for (let i = 0; i < visibleFloors; i++) {
+      const floorsToShow = Math.min(game.floors, 10);
+      for (let i = 0; i < floorsToShow; i++) {
         const floor = document.createElement('div');
         floor.className = 'floor';
         el.buildingVisual.appendChild(floor);
       }
 
-      // Статус
       if (game.floors >= MAX_FLOORS) {
-        el.buildingStatus.textContent = '✅ Дом завершён! Строится следующий.';
+        el.buildingStatus.textContent = '✅ Дом завершён! Нажмите "Строить" для нового.';
       } else if (game.floors > 0) {
         el.buildingStatus.textContent = '🏗️ Строительство идёт!';
       } else {
@@ -200,13 +317,11 @@
       }
     }
 
-    // === Сохранение ===
     function save() {
-      localStorage.setItem('pixelMiner_v4', JSON.stringify(game));
+      localStorage.setItem('pixelMiner_v5', JSON.stringify(game));
       render();
     }
 
-    // === Основные действия ===
     el.mineBtn.onclick = () => { game.energy += game.tapPower; save(); };
     el.upgrade.onclick = () => { if (game.energy >= 10) { game.energy -= 10; game.tapPower++; save(); } };
     el.cycle.onclick = () => {
@@ -215,7 +330,7 @@
       game.shards += shards;
       game.energy = 0;
       game.cycles++;
-      alert(`✅ Цикл завершён!\n+${shards} осколков Аскензии.`);
+      alert(`✅ Цикл завершён!\n+${shards} осколков.`);
       save();
     };
     el.donate.onclick = () => {
@@ -224,33 +339,28 @@
       if (tg?.openTelegramLink) tg.openTelegramLink(url);
       else window.open(url, '_blank');
     };
-
-    // === Карта ===
     el.mapBtn.onclick = () => {
       el.mapView.style.display = el.mapView.style.display === 'none' ? 'block' : 'none';
     };
-
     el.buildBtn.onclick = () => {
       if (game.floors >= MAX_FLOORS) {
-        // Начинаем новый дом
         game.buildings++;
         game.floors = 0;
         game.buildClicks = 0;
-        alert('Начато строительство нового здания!');
+        alert('🏗️ Начато строительство нового здания!');
       } else {
         game.buildClicks++;
         if (game.buildClicks >= CLICKS_PER_FLOOR) {
           game.floors++;
           game.buildClicks = 0;
           if (game.floors === MAX_FLOORS) {
-            alert('🏆 Дом завершён! Нажмите "Строить", чтобы начать новое здание.');
+            alert('🏆 Дом завершён! Гордость района!');
           }
         }
       }
       save();
     };
 
-    // === Запуск ===
     render();
   </script>
 </body>
