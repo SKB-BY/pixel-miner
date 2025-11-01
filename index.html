@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="format-detection" content="telephone=no">
   <title>Pixel Miner</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -36,8 +35,9 @@
       align-items: center;
       justify-content: flex-start;
       padding: clamp(10px, 4vh, 20px) clamp(5px, 3vw, 15px);
-      overflow: hidden;
+      overflow-y: auto;
       text-align: center;
+      position: relative;
     }
 
     .header {
@@ -158,13 +158,16 @@
 
     .building-container {
       margin: 15px auto;
-      width: clamp(60px, 18vw, 90px);
-      height: clamp(120px, 35vh, 180px);
+      width: clamp(80px, 20vw, 120px);
+      min-height: clamp(150px, 40vh, 200px);
       background: #0d0a20;
       border: 2px solid #444;
       position: relative;
       overflow: hidden;
       border-radius: 4px;
+      display: flex;
+      flex-direction: column-reverse;
+      justify-content: flex-start;
     }
 
     .floor {
@@ -188,6 +191,28 @@
       0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4); }
       70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
       100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      display: none;
+      animation: fadeInOut 2s forwards;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
     }
 
     @media (max-height: 600px) {
@@ -252,6 +277,8 @@
     </div>
   </div>
 
+  <div class="toast" id="toast"></div>
+
   <script>
     const tg = window.Telegram?.WebApp;
     if (tg) {
@@ -263,7 +290,7 @@
     const CLICKS_PER_FLOOR = 1000;
     const MAX_FLOORS = 100;
 
-    let game = JSON.parse(localStorage.getItem('pixelMiner_v5')) || {
+    let game = JSON.parse(localStorage.getItem('pixelMiner_v6')) || {
       energy: 0,
       shards: 0,
       cycles: 0,
@@ -289,8 +316,15 @@
       buildingNum: document.getElementById('buildingNum'),
       floorCount: document.getElementById('floorCount'),
       buildingVisual: document.getElementById('buildingVisual'),
-      buildingStatus: document.getElementById('buildingStatus')
+      buildingStatus: document.getElementById('buildingStatus'),
+      toast: document.getElementById('toast')
     };
+
+    function showToast(message) {
+      el.toast.textContent = message;
+      el.toast.style.display = 'block';
+      setTimeout(() => { el.toast.style.display = 'none'; }, 2000);
+    }
 
     function render() {
       el.energy.textContent = Math.floor(game.energy);
@@ -318,7 +352,7 @@
     }
 
     function save() {
-      localStorage.setItem('pixelMiner_v5', JSON.stringify(game));
+      localStorage.setItem('pixelMiner_v6', JSON.stringify(game));
       render();
     }
 
@@ -333,28 +367,45 @@
       alert(`✅ Цикл завершён!\n+${shards} осколков.`);
       save();
     };
+
     el.donate.onclick = () => {
       const comment = "PixelMiner_Support_" + game.userId;
       const url = `ton://transfer/${WALLET_ADDRESS}?amount=${0.1 * 1e9}&text=${encodeURIComponent(comment)}`;
-      if (tg?.openTelegramLink) tg.openTelegramLink(url);
-      else window.open(url, '_blank');
+
+      if (tg && typeof tg.openTelegramLink === 'function') {
+        try {
+          tg.openTelegramLink(url);
+        } catch (e) {
+          showToast("⚠️ Не удалось открыть кошелёк. Попробуйте в мобильном Telegram.");
+        }
+      } else {
+        // Альтернатива: открыть в новом окне
+        const newWindow = window.open(url, '_blank');
+        if (!newWindow) {
+          showToast("🔒 Блокировщик рекламы или настройки браузера мешают открыть кошелёк.");
+        } else {
+          showToast("🔗 Открывается кошелёк в новом окне...");
+        }
+      }
     };
+
     el.mapBtn.onclick = () => {
       el.mapView.style.display = el.mapView.style.display === 'none' ? 'block' : 'none';
     };
+
     el.buildBtn.onclick = () => {
       if (game.floors >= MAX_FLOORS) {
         game.buildings++;
         game.floors = 0;
         game.buildClicks = 0;
-        alert('🏗️ Начато строительство нового здания!');
+        showToast('🏗️ Начато строительство нового здания!');
       } else {
         game.buildClicks++;
         if (game.buildClicks >= CLICKS_PER_FLOOR) {
           game.floors++;
           game.buildClicks = 0;
           if (game.floors === MAX_FLOORS) {
-            alert('🏆 Дом завершён! Гордость района!');
+            showToast('🏆 Дом завершён! Гордость района!');
           }
         }
       }
