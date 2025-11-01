@@ -61,17 +61,44 @@
       box-shadow: 0 6px 20px rgba(255,65,108,0.6);
       margin: 15px 0;
     }
-    .donate-btn {
-      background: linear-gradient(135deg, #FFD700, #FFA500);
-      color: #000;
+    .donate-btn { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
+    .cycle-btn { background: linear-gradient(135deg, #00c9ff, #92fe9d); color: #000; }
+    .upgrade-btn { background: linear-gradient(135deg, #8E2DE2, #4A00E0); color: white; }
+    .map-btn { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
+    .build-btn { background: linear-gradient(135deg, #2ecc71, #1abc9c); color: white; }
+
+    #mapView {
+      margin-top: 20px;
+      min-height: 180px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 12px;
+      padding: 12px;
+      display: none;
     }
-    .cycle-btn {
-      background: linear-gradient(135deg, #00c9ff, #92fe9d);
-      color: #000;
+    .building-label {
+      margin-top: 10px;
+      font-size: 0.95em;
+      color: #aaffaa;
     }
-    .upgrade-btn {
-      background: linear-gradient(135deg, #8E2DE2, #4A00E0);
-      color: white;
+    .building {
+      width: 70px;
+      height: 140px;
+      margin: 10px auto;
+      background: #111;
+      position: relative;
+      border: 2px solid #555;
+      overflow: hidden;
+    }
+    .floor {
+      width: 100%;
+      height: 14px; /* 140px / 10 = 10 этажей на экране (масштабируемо) */
+      background: #27ae60;
+      border-bottom: 1px solid #1e8449;
+      animation: appear 0.3s ease;
+    }
+    @keyframes appear {
+      from { opacity: 0; transform: scaleY(0); }
+      to { opacity: 1; transform: scaleY(1); }
     }
   </style>
 </head>
@@ -86,10 +113,19 @@
     <button class="btn upgrade-btn" id="upgrade">Улучшить добычу (+1) – 10 Эн.</button>
     <button class="btn cycle-btn" id="cycle">🔄 Запустить цикл очищения</button>
     <button class="btn donate-btn" id="donate">💎 Поддержать разработчика (TON)</button>
+    <button class="btn map-btn" id="mapBtn">🗺️ Карта строительства</button>
+
+    <div id="mapView">
+      <div>🏗️ Дом №<b id="buildingNum">1</b> (<b id="floorCount">0</b>/100 этажей)</div>
+      <div class="building" id="buildingVisual"></div>
+      <div>Нажатий: <b id="buildClicks">0</b> / 1000</div>
+      <button class="btn build-btn" id="buildBtn">🔨 Строить</button>
+      <div class="building-label" id="buildingStatus">Фундамент заложен...</div>
+    </div>
   </div>
 
   <script>
-    // === Telegram WebApp Init ===
+    // === Telegram WebApp ===
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.expand();
@@ -98,18 +134,23 @@
 
     // === Константы ===
     const WALLET_ADDRESS = "UQA5aUC-_Z0IK4_NqFJVdBKCGUzO9DXFwHMs7gwSMWGM8CxY";
-    const DONATION_AMOUNT = 0.1; // TON (минимальный донат)
+    const CLICKS_PER_FLOOR = 1000;
+    const MAX_FLOORS = 100;
 
-    // === Загрузка данных ===
-    let game = JSON.parse(localStorage.getItem('pixelMiner_v2')) || {
+    // === Инициализация данных ===
+    let game = JSON.parse(localStorage.getItem('pixelMiner_v4')) || {
       energy: 0,
       shards: 0,
       cycles: 0,
       tapPower: 1,
-      lastCycle: 0
+      // Стройка
+      buildClicks: 0,
+      floors: 0,
+      buildings: 1,
+      userId: tg?.initDataUnsafe?.user?.id || Math.floor(Math.random() * 1e9)
     };
 
-    // === DOM ссылки ===
+    // === DOM элементы ===
     const el = {
       energy: document.getElementById('energy'),
       shards: document.getElementById('shards'),
@@ -117,112 +158,100 @@
       mineBtn: document.getElementById('mineBtn'),
       upgrade: document.getElementById('upgrade'),
       cycle: document.getElementById('cycle'),
-      donate: document.getElementById('donate')
+      donate: document.getElementById('donate'),
+      mapBtn: document.getElementById('mapBtn'),
+      mapView: document.getElementById('mapView'),
+      buildBtn: document.getElementById('buildBtn'),
+      buildClicks: document.getElementById('buildClicks'),
+      buildingNum: document.getElementById('buildingNum'),
+      floorCount: document.getElementById('floorCount'),
+      buildingVisual: document.getElementById('buildingVisual'),
+      buildingStatus: document.getElementById('buildingStatus')
     };
 
-    // === Обновление интерфейса ===
+    // === Обновление UI ===
     function render() {
+      // Основной экран
       el.energy.textContent = Math.floor(game.energy);
       el.shards.textContent = game.shards;
       el.cycles.textContent = game.cycles;
+
+      // Карта
+      el.buildingNum.textContent = game.buildings;
+      el.floorCount.textContent = game.floors;
+      el.buildClicks.textContent = game.buildClicks;
+
+      // Визуализация здания (макс. 10 блоков на экране)
+      el.buildingVisual.innerHTML = '';
+      const visibleFloors = Math.min(game.floors, 10);
+      for (let i = 0; i < visibleFloors; i++) {
+        const floor = document.createElement('div');
+        floor.className = 'floor';
+        el.buildingVisual.appendChild(floor);
+      }
+
+      // Статус
+      if (game.floors >= MAX_FLOORS) {
+        el.buildingStatus.textContent = '✅ Дом завершён! Строится следующий.';
+      } else if (game.floors > 0) {
+        el.buildingStatus.textContent = '🏗️ Строительство идёт!';
+      } else {
+        el.buildingStatus.textContent = 'Фундамент заложен...';
+      }
     }
 
     // === Сохранение ===
     function save() {
-      localStorage.setItem('pixelMiner_v2', JSON.stringify(game));
+      localStorage.setItem('pixelMiner_v4', JSON.stringify(game));
       render();
     }
 
-    // === Добыча энергии ===
-    el.mineBtn.addEventListener('click', () => {
-      game.energy += game.tapPower;
-      save();
-    });
-
-    // === Улучшение ===
-    el.upgrade.addEventListener('click', () => {
-      if (game.energy >= 10) {
-        game.energy -= 10;
-        game.tapPower += 1;
-        save();
-      }
-    });
-
-    // === Замкнутый цикл ===
-    el.cycle.addEventListener('click', () => {
+    // === Основные действия ===
+    el.mineBtn.onclick = () => { game.energy += game.tapPower; save(); };
+    el.upgrade.onclick = () => { if (game.energy >= 10) { game.energy -= 10; game.tapPower++; save(); } };
+    el.cycle.onclick = () => {
       if (game.energy <= 0) return;
-
-      // Награда = прогрессивная от силы
-      const shardsEarned = Math.max(1, Math.floor(game.tapPower * 0.6));
-      game.shards += shardsEarned;
-      game.energy = 0; // почти всё теряется → замкнутый цикл
-      game.cycles += 1;
-
-      alert(`✅ Цикл завершён!\nПолучено: ${shardsEarned} осколков Аскензии.\nТеперь начни заново — ты стал сильнее!`);
-
+      const shards = Math.max(1, Math.floor(game.tapPower * 0.6));
+      game.shards += shards;
+      game.energy = 0;
+      game.cycles++;
+      alert(`✅ Цикл завершён!\n+${shards} осколков Аскензии.`);
       save();
-    });
+    };
+    el.donate.onclick = () => {
+      const comment = "PixelMiner_Support_" + game.userId;
+      const url = `ton://transfer/${WALLET_ADDRESS}?amount=${0.1 * 1e9}&text=${encodeURIComponent(comment)}`;
+      if (tg?.openTelegramLink) tg.openTelegramLink(url);
+      else window.open(url, '_blank');
+    };
 
-    // === Донат через TON кошелёк ===
-    el.donate.addEventListener('click', () => {
-      // Формируем deep-link для перевода TON
-      const comment = "PixelMiner_Support_" + (tg?.initDataUnsafe?.user?.id || 'anon');
-      const encodedComment = encodeURIComponent(comment);
-      const tonUrl = `ton://transfer/${WALLET_ADDRESS}?amount=${DONATION_AMOUNT * 1e9}&text=${encodedComment}`;
+    // === Карта ===
+    el.mapBtn.onclick = () => {
+      el.mapView.style.display = el.mapView.style.display === 'none' ? 'block' : 'none';
+    };
 
-      if (tg && typeof tg.openTelegramLink === 'function') {
-        tg.openTelegramLink(tonUrl);
+    el.buildBtn.onclick = () => {
+      if (game.floors >= MAX_FLOORS) {
+        // Начинаем новый дом
+        game.buildings++;
+        game.floors = 0;
+        game.buildClicks = 0;
+        alert('Начато строительство нового здания!');
       } else {
-        // Резерв: открыть в новом окне
-        window.open(tonUrl, '_blank');
+        game.buildClicks++;
+        if (game.buildClicks >= CLICKS_PER_FLOOR) {
+          game.floors++;
+          game.buildClicks = 0;
+          if (game.floors === MAX_FLOORS) {
+            alert('🏆 Дом завершён! Нажмите "Строить", чтобы начать новое здание.');
+          }
+        }
       }
-    });
+      save();
+    };
 
-    // === Инициализация ===
+    // === Запуск ===
     render();
-  </script>
-</body>
-</html>
-    // Улучшение
-    upgradeBtn.addEventListener('click', () => {
-      if (saveData.energy >= 10) {
-        saveData.energy -= 10;
-        saveData.tapPower += 1;
-        updateUI();
-        saveGame();
-      }
-    });
-
-    // Цикл очищения (замкнутый цикл)
-    cycleBtn.addEventListener('click', () => {
-      if (saveData.energy < 1) return;
-      const shardsEarned = Math.max(1, Math.floor(saveData.tapPower / 2));
-      saveData.shards += shardsEarned;
-      saveData.energy = 0; // почти всё теряется
-      saveData.cycles += 1;
-      alert(`Цикл завершён! Получено ${shardsEarned} осколков.`);
-      updateUI();
-      saveGame();
-    });
-
-    // Донат через TON (Telegram Stars / TON Connect)
-    donateBtn.addEventListener('click', () => {
-      if (typeof tg.openInvoice === 'function') {
-        // Пример: если вы настроите Stars в BotFather
-        tg.openInvoice('https://your-bot-payment-link.com'); // ← замените на реальную ссылку
-      } else {
-        alert('Поддержка через TON скоро будет! Следите за обновлениями.');
-        // В будущем: интеграция с @wallet или TON Connect
-      }
-    });
-
-    // Автоматическое сохранение
-    function saveGame() {
-      localStorage.setItem('pixelMinerSave', JSON.stringify(saveData));
-    }
-
-    // Инициализация
-    updateUI();
   </script>
 </body>
 </html>
