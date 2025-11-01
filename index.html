@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pixel Miner</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0f0c29;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #game {
+      text-align: center;
+      max-width: 500px;
+      padding: 20px;
+    }
+    #energy, #cycles, #shards {
+      font-size: 1.4em;
+      margin: 10px 0;
+    }
+    #mineBtn {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      color: white;
+      font-size: 1.2em;
+      border: none;
+      margin: 20px 0;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    #upgradeBtn, #cycleBtn {
+      padding: 10px 20px;
+      margin: 5px;
+      background: #ff416c;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #donateBtn {
+      margin-top: 20px;
+      padding: 8px 16px;
+      background: #ffb300;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <h2>⚡ Pixel Miner</h2>
+    <div id="energy">Энергия: <span id="energyVal">0</span></div>
+    <div id="cycles">Циклов пройдено: <span id="cycleCount">0</span></div>
+    <div id="shards">Осколков Аскензии: <span id="shardCount">0</span></div>
+    <button id="mineBtn">ТАПНИ!</button>
+    <br>
+    <button id="upgradeBtn">Улучшить добычу (+1) - 10 Эн.</button>
+    <button id="cycleBtn">Запустить цикл очищения</button>
+    <br>
+    <button id="donateBtn">💎 Поддержать (TON)</button>
+  </div>
+
+  <script>
+    // Инициализация Telegram WebApp
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.ready();
+
+    // Сохранение/загрузка данных
+    let saveData = JSON.parse(localStorage.getItem('pixelMinerSave')) || {
+      energy: 0,
+      shards: 0,
+      cycles: 0,
+      tapPower: 1,
+      autoClick: 0
+    };
+
+    // DOM элементы
+    const energyEl = document.getElementById('energyVal');
+    const shardEl = document.getElementById('shardCount');
+    const cycleEl = document.getElementById('cycleCount');
+    const mineBtn = document.getElementById('mineBtn');
+    const upgradeBtn = document.getElementById('upgradeBtn');
+    const cycleBtn = document.getElementById('cycleBtn');
+    const donateBtn = document.getElementById('donateBtn');
+
+    // Обновление UI
+    function updateUI() {
+      energyEl.textContent = Math.floor(saveData.energy);
+      shardEl.textContent = saveData.shards;
+      cycleEl.textContent = saveData.cycles;
+    }
+
+    // Добыча энергии
+    mineBtn.addEventListener('click', () => {
+      saveData.energy += saveData.tapPower;
+      updateUI();
+      saveGame();
+    });
+
+    // Улучшение
+    upgradeBtn.addEventListener('click', () => {
+      if (saveData.energy >= 10) {
+        saveData.energy -= 10;
+        saveData.tapPower += 1;
+        updateUI();
+        saveGame();
+      }
+    });
+
+    // Цикл очищения (замкнутый цикл)
+    cycleBtn.addEventListener('click', () => {
+      if (saveData.energy < 1) return;
+      const shardsEarned = Math.max(1, Math.floor(saveData.tapPower / 2));
+      saveData.shards += shardsEarned;
+      saveData.energy = 0; // почти всё теряется
+      saveData.cycles += 1;
+      alert(`Цикл завершён! Получено ${shardsEarned} осколков.`);
+      updateUI();
+      saveGame();
+    });
+
+    // Донат через TON (Telegram Stars / TON Connect)
+    donateBtn.addEventListener('click', () => {
+      if (typeof tg.openInvoice === 'function') {
+        // Пример: если вы настроите Stars в BotFather
+        tg.openInvoice('https://your-bot-payment-link.com'); // ← замените на реальную ссылку
+      } else {
+        alert('Поддержка через TON скоро будет! Следите за обновлениями.');
+        // В будущем: интеграция с @wallet или TON Connect
+      }
+    });
+
+    // Автоматическое сохранение
+    function saveGame() {
+      localStorage.setItem('pixelMinerSave', JSON.stringify(saveData));
+    }
+
+    // Инициализация
+    updateUI();
+  </script>
+</body>
+</html>
